@@ -1,8 +1,8 @@
+from abnumber import Chain
 import os
 import pandas as pd 
 from joblib import Parallel, delayed 
 from tqdm import tqdm 
-from abnumber import Chain
 
 
 def process_line(seq_idx, seq, split_scheme) :

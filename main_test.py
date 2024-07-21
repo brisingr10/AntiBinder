@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 from antigen_antibody_emb import * 
-from AntiBinder import *
+from antibinder_model import *
 import torch
 import torch.nn as nn 
 import numpy as np 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
   
 
     print (data_path)
-    val_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=False, test=True, rate1=0) # (antibody, type, antibody_structure), antigen, Label
+    val_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=False, test=True, rate1=0)
     val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=args.batch_size)
   
     logger = CSVLogger_my(['val_auc', 'val_prescision', 'val_acc', 'val_recall', 'val_f1', 'TN', 'FP', 'FN', 'TP'],f"/AntiBinder/logs/{args.model_name}_{args.latent_dim}_{args.data}.csv")

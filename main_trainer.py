@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 from antigen_antibody_emb import * 
-from AntiBinder import *
+from antibinder_model import *
 import torch
 import torch.nn as nn 
 import numpy as np 
@@ -20,9 +20,9 @@ warnings.filterwarnings("ignore")
 class Trainer():
     def __init__(self,model,train_dataloader,args,logger,load=False) -> None:
         self.model = model
-        self. train_dataloader = train_dataloader
-        # self. vaLid_dataloader = valid_dataloader
-        # self. test_dataloader = test_dataloader
+        self.train_dataloader = train_dataloader
+        # self.vaLid_dataloader = valid_dataloader
+        # self.test_dataloader = test_dataloader
         self.args = args
         self.logger = logger
         # self.grad_clip = args.grad_clip # cLip gradients at this value, or disable if == 0.0
@@ -91,7 +91,6 @@ class Trainer():
         torch.save(self.model.state_dict(),f"/AntiBinder/ckpts/{self.args.model_name}_{self.args.data}_{self.args.batch_size}_{self.args.epochs}_{self.args.latent_dim}_{self.args.lr}.pth")
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=42)
@@ -99,7 +98,7 @@ if __name__ == "__main__":
     parser.add_argument('--latent_dim', type=int, default=36)
     parser.add_argument('--epochs', type=int, default=500)
     # parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay used in optimizer') # 1e-5
-    parser.add_argument('--lr', type=float, default=6e-5, help='learning rate') # 6e-7
+    parser.add_argument('--lr', type=float, default=6e-5, help='learning rate')
     parser.add_argument('--model_name', type=str, default= 'AntiBinder')
     parser.add_argument('--cuda', type=bool, default=True)
     parser.add_argument('--device', type=str, default='1')
@@ -132,14 +131,14 @@ if __name__ == "__main__":
 
 
     # print (data_path)
-    train_dataset = antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=True, test=False, rate1=1) # (antibody, type, antibody_structure), antigen, Label
-    # vaL_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data path, train=False, test=True, rate1=0.7) # (antibody, type, antibody_structure), antigen, Label
+    train_dataset = antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=True, test=False, rate1=1)
+    # vaL_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data path, train=False, test=True, rate1=0.7)
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=args.batch_size)
     # vaL_dataloader = DataLoader(val_dataset, shuffLe=False, batch_size=args.batch_size)
   
 
-    logger = CSVLogger_my(['epoch', 'train_loss', 'train_acc', 'train_precision', 'train_f1', 'train_recall'],f"/home/zhangkaiwen/AEC/logs/ZKW/{args.model_name}_{args.data}_{args.batch_size}_{args.epochs}_{args.latent_dim}_{args.lr}.csv")
+    logger = CSVLogger_my(['epoch', 'train_loss', 'train_acc', 'train_precision', 'train_f1', 'train_recall'],f"/AntiBinder/logs/{args.model_name}_{args.data}_{args.batch_size}_{args.epochs}_{args.latent_dim}_{args.lr}.csv")
     scheduler = None
 
     # load model if needs

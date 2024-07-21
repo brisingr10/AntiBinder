@@ -8,11 +8,13 @@ os.chdir('/AntiBinder')
 
 
 class AntiModelIinitial():
-    def __init__(self, initializer_range=0.02) -> None: ## 0.02
+    def __init__(self, initializer_range=0.02) -> None:
         self.initializer_range = initializer_range
 
     def _init_weights(self, module):
-        """Initialize the weights""" 
+        """
+        Initialize the weights
+        """ 
         if isinstance(module, nn.Linear):
             module.weight.data.normal_(mean=0.0, std=self.initializer_range)
             if module.bias is not None: 
@@ -126,13 +128,11 @@ class Combine_Embedding(nn.Module):
         antibody[0], antibody[1], antibody[2] = antibody[0].cuda(), antibody[1].cuda(), antibody[2].cuda()
         antigen[0],antigen[1] = antigen[0].cuda(),antigen[1].cuda()
 
-
-
-        antibody_seq_emb = self.seq_emb(seq = antibody[0], type = antibody[1])  # shape: [batch_size, 141, antigen_hidden_dim (1024)]
+        antibody_seq_emb = self.seq_emb(seq = antibody[0], type = antibody[1])
         # print(antibody[2].shape)
-        antibody_structure = self.antibody_sturcture_change_dim(antibody[2])  # shape: [batch_size, 141, antibody_hidden_dim(1024)]
-        antigen_seq_emb = self.seq_emb(seq = antigen[0])  # shape: [batch_size, 2000, antigen_hidden_dim(1024)]
-        antigen_structure = self.antigen_sturcture_change_dim(antigen[1])  # shape: [batch_size, 2000, antigen_hidden_dim(1024)]
+        antibody_structure = self.antibody_sturcture_change_dim(antibody[2])
+        antigen_seq_emb = self.seq_emb(seq = antigen[0])
+        antigen_structure = self.antigen_sturcture_change_dim(antigen[1])
 
         antibody_seq_plus_stru = antibody_seq_emb + antibody_structure
         antigen_seq_plus_stru = antigen_seq_emb + antigen_structure
@@ -145,24 +145,24 @@ class bicrossatt(nn.Module):
         super().__init__()
         self.bidirectional_crossatt = BidirectionalCrossAttention(embed_dim=antibody_hidden_dim, num_heads=1)
         self.LayerNorm = nn.LayerNorm(antibody_hidden_dim, eps=1e-12)
-        self.linear = nn.Sequential(nn.Linear(1024,1024),nn.ReLU(inplace=True))
-        self.change_dim = nn.Sequential(nn.Linear(1024,latent_dim),nn.ReLU(inplace=True))
+        self.linear = nn.Sequential(nn.Linear(antibody_hidden_dim,antibody_hidden_dim),nn.ReLU(inplace=True))
+        self.change_dim = nn.Sequential(nn.Linear(antibody_hidden_dim,latent_dim),nn.ReLU(inplace=True))
         self.pool = pool(latent_dim)
         self.flatten = nn.Flatten()
         self.alpha = nn.Parameter(torch.tensor([1.0]))
         self.latent_dim = latent_dim
 
-    def forward(self, antibody_seq_stru, antigen_seq_stru): # [batch,150,1024],[batch,2000,1024]
+    def forward(self, antibody_seq_stru, antigen_seq_stru):
         antibody_seq_stru,antigen_seq_stru = self.bidirectional_crossatt(antibody_seq_stru,antigen_seq_stru)
 
-        antibody_seq_stru = self.change_dim(self.linear(self.LayerNorm(antibody_seq_stru)))  # [batch,150,64]
-        antigen_seq_stru = self.change_dim(self.linear(self.LayerNorm(antigen_seq_stru)))   # [batch,2000,64]
+        antibody_seq_stru = self.change_dim(self.linear(self.LayerNorm(antibody_seq_stru)))
+        antigen_seq_stru = self.change_dim(self.linear(self.LayerNorm(antigen_seq_stru))) 
 
-        antibody_seq_stru = self.pool(antibody_seq_stru,self.latent_dim,is_antibody=True)  # [batch,64,64]
-        antigen_seq_stru = self.pool(antigen_seq_stru,self.latent_dim,is_antibody=False)  # [batch,64,64]
+        antibody_seq_stru = self.pool(antibody_seq_stru,self.latent_dim,is_antibody=True)
+        antigen_seq_stru = self.pool(antigen_seq_stru,self.latent_dim,is_antibody=False)
 
-        antibody_seq_stru = self.flatten(antibody_seq_stru)  # [batch,4096]
-        antigen_seq_stru = self.flatten(antigen_seq_stru)  # [batch,4096]
+        antibody_seq_stru = self.flatten(antibody_seq_stru)
+        antigen_seq_stru = self.flatten(antigen_seq_stru)
 
         concatenated_tensor = torch.cat((antibody_seq_stru, self.alpha*antigen_seq_stru), dim=-1)
         return concatenated_tensor
@@ -184,7 +184,7 @@ class antibinder(nn.Module):
     def forward(self, antibody, antigen): 
         # antibody: [antibody,at_type,antibody_structure]
         # antigen : [antigen,antigen_structure]
-        antibody_seq_stru,antigen_seq_stru = self.combined_embedding(antibody, antigen) # [batch,150,1024],[batch,2000,1024]
+        antibody_seq_stru,antigen_seq_stru = self.combined_embedding(antibody, antigen)
         concat_tensor = self.bicrossatt(antibody_seq_stru,antigen_seq_stru)
 
         return self.cls(concat_tensor)
@@ -199,11 +199,7 @@ if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 
-    # data_path = '/AntiBinder/datasets/combined_all_for_train/combined_for_train.csv'
-    # dataset = antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config, data_path=data_path, train=True, test=False, rate1=0.0001)
-    # # pdb. set_trace()
-    # x1 = dataset[0]
-    model = AntiBinder(antibody_hidden_dim=1024,antigen_hidden_dim=1024,latent_dim=32)
+    model = antibinder(antibody_hidden_dim=1024,antigen_hidden_dim=1024,latent_dim=32)
     print(model)
     model.combined_embedding = torch.nn.DataParallel(model.combined_embedding).cuda()
     model.bicrossatt = torch.nn.DataParallel(model.bicrossatt).cuda()

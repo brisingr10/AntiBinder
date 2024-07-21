@@ -28,7 +28,8 @@ def process_line(seq_idx, seq, split_scheme) :
     return result
 
 
-def process_file(file_path, output_path, split_scheme) :
+def process_file(file_path, output_path, split_scheme):
+    # multi-process
     df = pd.read_csv(file_path)
     n_jobs = -1
     parallel_pre = Parallel(n_jobs=n_jobs, backend="loky")

@@ -173,6 +173,7 @@ class antibinder(nn.Module):
         super().__init__()
         self.combined_embedding = Combine_Embedding(antibody_hidden_dim,antigen_hidden_dim)
         self.bicrossatt = bicrossatt(antibody_hidden_dim,latent_dim)
+        # self.multi_bidcrossatt = nn.ModuleList([bicrossatt(antibody_hidden_dim,latent_dim) for _ in range(N)])
         self.cls = nn.Sequential(
             nn.Linear(latent_dim*latent_dim*2,latent_dim*latent_dim),
             nn.ReLU(),

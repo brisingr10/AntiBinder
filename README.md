@@ -1,4 +1,7 @@
 # AntiBinder
+AntiBinder: a sequence-structure hybrid model based on bidirectional cross-attention mechanism for predicting antibody-antigen binding relationships.
+
+![framework](./figures/total_model.png)
 
 ## Introduction
 This project is used for predicting antigen-antibody affinity for protein types. The model can be trained and used based solely on sequence data. You can also stack the modules within, making the model's parameters significantly larger, and train it to achieve a plug-and-play effect.

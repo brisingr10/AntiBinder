@@ -45,7 +45,7 @@ Prepare labeled sequence data for antigens and antibody heavy chains. Name the c
 #### Testing
 Prepare labeled sequence data for antigens and antibodies. Name the columns according to the names specified in the `antigen_antibody_emb.py`. Then, use the command: `python main_test.py` to start the test.
 ```python
-# Example code for starting tesing
+# Example code for starting testing
 
 # Start training
 !python main_test.py

@@ -96,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--batch_size', type=int, default=200)
     parser.add_argument('--latent_dim', type=int, default=36)
+    # In certain datasets, an early stopping strategy is required to achieve optimal results.
     parser.add_argument('--epochs', type=int, default=500)
     # parser.add_argument('--weight_decay', type=float, default=1e-5, help='weight decay used in optimizer') # 1e-5
     parser.add_argument('--lr', type=float, default=6e-5, help='learning rate')

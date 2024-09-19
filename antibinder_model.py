@@ -2,7 +2,7 @@ from torch.distributions import Normal
 import torch
 import torch.nn as nn 
 from antigen_antibody_emb import *
-from configuration_antibody_vat import *
+from cfg_ab import *
 from torch.utils.data import DataLoader
 os.chdir('/AntiBinder')
 

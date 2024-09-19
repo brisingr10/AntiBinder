@@ -8,8 +8,8 @@ import torch.nn. functional as F
 import pandas as pd
 import sys
 sys.path.append("/AntiBinder")
-from configuration_antibody_vat import AA_VOCAB
-from configuration_antibody_vat import configuration
+from cfg_ab import AA_VOCAB
+from cfg_ab import configuration
 import pdb
 from math import ceil
 from igfold import IgFoldRunner

@@ -127,7 +127,21 @@ class antibody_antigen_dataset(nn.Module):
         structure_m3 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'] + data['H-FR4'])
         # print("zero_for_padding", zero_for_padding)
         # print("zero_for_padding.shape"，zero_for_padding.shape)
-        structure = torch.cat((structure[:,:structure_m1,:],structure[:,structure_m1:structure_m2,:].mean(1).unsqueeze(1),structure[:,structure_m2:structure_m3,:]),dim=1)
+        part1_indices = torch.arange(structure_m1)
+        part2_indices = torch.arange(structure_m1, structure_m2)
+        part3_indices = torch.arange(structure_m2, structure_m3)
+
+        part1 = structure.index_select(1, part1_indices)
+        part2_full = structure.index_select(1, part2_indices)
+        part2_mean = part2_full.mean(dim=1)
+        part2_reshaped = part2_mean.view(part2_mean.size(0), 1, part2_mean.size(1))
+        part3 = structure.index_select(1, part3_indices)
+
+        structure = torch.cat((
+            part1.detach().clone(),
+            part2_reshaped.detach().clone(),
+            part3.detach().clone()
+        ), dim=1)
         # print("stru.shape", structure.shape)
         zero_for_padding = torch.zeros(1,self.antibody_config.max_position_embeddings-structure.shape[1], structure.shape[-1]).float()
         structure = torch.cat((structure, zero_for_padding) ,dim=1).squeeze(0)

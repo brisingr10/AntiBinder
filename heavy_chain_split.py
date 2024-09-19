@@ -1,14 +1,14 @@
-from abnumber import Chain
 import os
-import pandas as pd 
+import pandas as pd
+from abnumber import Chain
 from joblib import Parallel, delayed 
 from tqdm import tqdm 
 
 
-def process_line(seq_idx, seq, split_scheme) :
+def prepare_seq(seq_idx, seq, main_sp) :
     result = {'Index': seq_idx}
     try:
-        chain = Chain(seq, scheme=split_scheme)
+        chain = Chain(seq, scheme=main_sp)
         if chain.chain_type == 'H':
             result = {
                 'Index':seq_idx,
@@ -28,29 +28,25 @@ def process_line(seq_idx, seq, split_scheme) :
     return result
 
 
-def process_file(file_path, output_path, split_scheme):
+def prepare_file(file_path, output_path, main_sp):
     # multi-process
     df = pd.read_csv(file_path)
     n_jobs = -1
     parallel_pre = Parallel(n_jobs=n_jobs, backend="loky")
-    processed_data = parallel_pre(delayed(process_line)(idx, seq, split_scheme) for idx, seq in tqdm(df['vh'].dropna().iteritems(), desc="Processing Sequences"))
+    processed_data = parallel_pre(delayed(prepare_seq)(idx, seq, main_sp) for idx, seq in tqdm(df['vh'].dropna().iteritems(), desc="Processing Sequences"))
     processed_df = pd.DataFrame(processed_data).set_index('Index')
     for col in processed_df.columns:
         df[col] = processed_df[col]
     df.to_csv(output_path, index=False)
 
 
-def process_data(input_file, output_file, split_scheme):
-    process_file(input_file,
+def final_pdata(input_file, output_file, main_sp):
+    prepare_file(input_file,
                  output_file,
-                 split_scheme
+                 main_sp
                  )
     
 if __name__ == "__main__":
-    split_scheme = 'chothia'
-    split_type = 'Heavy_fv_oas_train_filtered'
-    log_file = '{}_{}.log'.format(split_type, split_scheme)
-
     work_dir = "/AntiBinder/"
     input_file = ""
     output_file_prefix = input_file.split('.')[2]
@@ -58,5 +54,8 @@ if __name__ == "__main__":
 
     os.chdir(work_dir)
 
-    process_data(input_file, output_file, split_scheme)
+    main_sp = 'chothia'
+    second_sp = 'Heavy_fv_oas_train_filtered'
+
+    final_pdata(input_file, output_file, main_sp)
     print("Finish!")

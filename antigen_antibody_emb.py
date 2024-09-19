@@ -8,7 +8,7 @@ import torch.nn. functional as F
 import pandas as pd
 import sys
 sys.path.append("/AntiBinder")
-from cfg_ab import AA_VOCAB
+from cfg_ab import AminoAcid_Vocab
 from cfg_ab import configuration
 import pdb
 from math import ceil
@@ -54,21 +54,21 @@ class antibody_antigen_dataset(nn.Module):
         self.igfold = IgFoldRunner()
 
 
-    def padding(self, seq, maxlen):
-        if len(seq) > maxlen:
-            return seq[:maxlen]
+    def universal_padding(self, sequence, max_length):
+        if len(sequence) > max_length:
+            return sequence[:max_length]
         else:
-            return torch.cat([seq,torch.zeros(maxlen-len(seq))]).long()
+            return torch.cat([sequence,torch.zeros(max_length-len(sequence))]).long()
     
 
-    def padding_esm(self, seq, maxlen):
-        if len(seq) > maxlen:
-            return seq[:maxlen]
+    def func_padding_for_esm(self, sequence, max_length):
+        if len(sequence) > max_length:
+            return sequence[:max_length]
         else:
-            return seq+'<pad>'*(maxlen-len(seq)-2)
+            return sequence+'<pad>'*(max_length-len(sequence)-2)
         
 
-    def type_position(self,index):
+    def region_indexing(self,index):
         data = self.data.iloc[index]
         HF1 = [1 for _ in range(len(data['H-FR1']))]
         HCDR1 = [3 for _ in range(len (data['H-CDR1']))]
@@ -78,7 +78,7 @@ class antibody_antigen_dataset(nn.Module):
         HCDR3 = [5 for _ in range(len(data['H-CDR3']))]
         HF4 = [1 for _ in range(len(data['H-FR4']))]
         vh = torch.tensor(list(HF1+HCDR1+HF2+HCDR2+HF3+HCDR3+HF4))
-        vh = self.padding(vh,self.antibody_config.max_position_embeddings)
+        vh = self.universal_padding(vh,self.antibody_config.max_position_embeddings)
 
         return vh
     
@@ -87,22 +87,19 @@ class antibody_antigen_dataset(nn.Module):
         data = self.data.iloc[index]
         label = torch.tensor(data['ANT_Binding'])
         if not os.path.exists('/AntiBinder/antigen_esm/train/'+str(self.data.iloc[index]['Antigen'])+'.pt'):
-            antigen = self.padding_esm(self.data['Antigen Sequence'].iloc[index], self.antigen_config.max_position_embeddings)
+            antigen = self.func_padding_for_esm(self.data['Antigen Sequence'].iloc[index], self.antigen_config.max_position_embeddings)
             antigen = [('antigen', antigen)]
             batch_labels, batch_strs, antigen = self.batch_converter(antigen)
             with torch.no_grad():
                 self.antigen_model = self.antigen_model.eval()
                 antigen = self.antigen_model(antigen.squeeze(1), repr_layers=[33], return_contacts=True)
                 antigen = antigen['representations'][33].squeeze(0)
-
             torch.save(antigen,'/AntiBinder/antigen_esm/train/'+str(self.data.iloc[index]['Antigen'])+'.pt')
         
         antigen_structure = torch.load("/AntiBinder/antigen_esm/train/"+str(self.data.iloc[index]['Antigen'])+'.pt')
-
         # print("antigen_structure："，antigen_structure)
         # print("antigen_structure shape: ", antigen_structure.shape)
         
-
         emb_seq = data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3'] + data['H-CDR3']+data['H-FR4']
         #if not emb_seq in self.structure_embedding.keys():
         self.env = lmdb.open('/AntiBinder/datasets/fold_emb/fold_emb_for_train',map_size=1024*1024*1024*50,lock=False)
@@ -128,30 +125,30 @@ class antibody_antigen_dataset(nn.Module):
         structure_m1 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3'])
         structure_m2 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'])
         structure_m3 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'] + data['H-FR4'])
-        # print("pads_zero", pads_zero)
-        # print("pads_zero.shape"，pads_zero.shape)
+        # print("zero_for_padding", zero_for_padding)
+        # print("zero_for_padding.shape"，zero_for_padding.shape)
         structure = torch.cat((structure[:,:structure_m1,:],structure[:,structure_m1:structure_m2,:].mean(1).unsqueeze(1),structure[:,structure_m2:structure_m3,:]),dim=1)
         # print("stru.shape", structure.shape)
-        pads_zero = torch.zeros(1,self.antibody_config.max_position_embeddings-structure.shape[1], structure.shape[-1]).float()
-        structure = torch.cat((structure, pads_zero) ,dim=1).squeeze(0)
+        zero_for_padding = torch.zeros(1,self.antibody_config.max_position_embeddings-structure.shape[1], structure.shape[-1]).float()
+        structure = torch.cat((structure, zero_for_padding) ,dim=1).squeeze(0)
 
 
         antibody = data['vh']
         # print("antibody："，antibody)
-        antibody = torch.tensor([AA_VOCAB[aa] for aa in antibody])
+        antibody = torch.tensor([AminoAcid_Vocab[aa] for aa in antibody])
         # print("antibody："，antibody)
-        antibody = self.padding(seq=antibody, maxlen=self.antibody_config.max_position_embeddings)
+        antibody = self.universal_padding(seq=antibody, maxlen=self.antibody_config.max_position_embeddings)
         # print("antibody: ", antibody)
         # print("antibody_shape:", antibody. shape)
 
-        at_type = self.type_position(index)
+        at_type = self.region_indexing(index)
         # print(type)
         # print(type.shape)
         antibody_structure = structure
 
         antigen = data['Antigen Sequence']
-        antigen = torch.tensor([AA_VOCAB[aa] for aa in antigen])
-        antigen = self.padding(seq=antigen, maxlen=self.antigen_config.max_position_embeddings)
+        antigen = torch.tensor([AminoAcid_Vocab[aa] for aa in antigen])
+        antigen = self.universal_padding(seq=antigen, maxlen=self.antigen_config.max_position_embeddings)
 
         antigen_structure = antigen_structure[:1024, :]
         # print(antigen_structure.shape)
@@ -159,6 +156,7 @@ class antibody_antigen_dataset(nn.Module):
 
     def __len__(self):
         return self.data.shape[0]
+
 
 if __name__ == "__main__":
     antigen_config = configuration()

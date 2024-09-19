@@ -1,7 +1,7 @@
 from math import fabs
 from turtle import pd
 
-AA_VOCAB = {
+AminoAcid_Vocab = {
     "A":1,
     "R":2,
     "N":3, 
@@ -27,7 +27,6 @@ AA_VOCAB = {
 
 }
 
-R_AA_VOCAB = {v:k for k,v in AA_VOCAB.items()}
 
 class configuration():
     def __init__(self,
@@ -42,8 +41,8 @@ class configuration():
                     type_embedding=False,
                     ) -> None:
         
-        self.AA_VOCAB = AA_VOCAB
-        self.token_size = len(self.AA_VOCAB)
+        self.AminoAcid_Vocab = AminoAcid_Vocab
+        self.token_size = len(self.AminoAcid_Vocab)
         self.residue_size = 21
         self.hidden_size = hidden_size
         self.pad_token_id = 0

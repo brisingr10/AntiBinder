@@ -1,3 +1,7 @@
+import esm
+import os
+import lmdb
+import pickle
 import torch
 import torch.nn as nn
 import torch.nn. functional as F
@@ -8,10 +12,6 @@ from configuration_antibody_vat import AA_VOCAB
 from configuration_antibody_vat import configuration
 import pdb
 from math import ceil
-import esm
-import os
-import lmdb
-import pickle
 from igfold import IgFoldRunner
 
 
@@ -93,7 +93,6 @@ class antibody_antigen_dataset(nn.Module):
             with torch.no_grad():
                 self.antigen_model = self.antigen_model.eval()
                 antigen = self.antigen_model(antigen.squeeze(1), repr_layers=[33], return_contacts=True)
-                # antigen = antigen[ 'representations'][33][:,:len(self.data['Antigen Sequence'].iLoc[index])].norm(dim=1).view(-1)
                 antigen = antigen['representations'][33].squeeze(0)
 
             torch.save(antigen,'/AntiBinder/antigen_esm/train/'+str(self.data.iloc[index]['Antigen'])+'.pt')
@@ -126,14 +125,12 @@ class antibody_antigen_dataset(nn.Module):
             # print("stru.shape"，structure.shape)
         self.env.close()
 
-        st_l = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3'])
-        st_r = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'])
-        st_e = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'] + data['H-FR4'])
-
-
+        structure_m1 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3'])
+        structure_m2 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'])
+        structure_m3 = len(data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3']+ data['H-CDR3'] + data['H-FR4'])
         # print("pads_zero", pads_zero)
         # print("pads_zero.shape"，pads_zero.shape)
-        structure = torch.cat((structure[:,:st_l,:],structure[:,st_l:st_r,:].mean(1).unsqueeze(1),structure[:,st_r:st_e,:]),dim=1)
+        structure = torch.cat((structure[:,:structure_m1,:],structure[:,structure_m1:structure_m2,:].mean(1).unsqueeze(1),structure[:,structure_m2:structure_m3,:]),dim=1)
         # print("stru.shape", structure.shape)
         pads_zero = torch.zeros(1,self.antibody_config.max_position_embeddings-structure.shape[1], structure.shape[-1]).float()
         structure = torch.cat((structure, pads_zero) ,dim=1).squeeze(0)

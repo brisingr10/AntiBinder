@@ -105,7 +105,7 @@ if __name__ == "__main__":
  
 
 
-    model = antibinder(antibody_hidden_dim=1024,antigen_hidden_dim=1024,latent_dim=args.latent_dim).cuda()
+    model = antibinder(antibody_hidden_dim=1024,antigen_hidden_dim=1024,latent_dim=args.latent_dim,res=False).cuda()
     print(model)
    
     

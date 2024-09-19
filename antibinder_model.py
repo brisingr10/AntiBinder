@@ -12,9 +12,6 @@ class AntiModelIinitial():
         self.initializer_range = initializer_range
 
     def _init_weights(self, module):
-        """
-        Initialize the weights
-        """ 
         if isinstance(module, nn.Linear):
             module.weight.data.normal_(mean=0.0, std=self.initializer_range)
             if module.bias is not None: 
@@ -29,13 +26,19 @@ class AntiModelIinitial():
 
 
 class BidirectionalCrossAttention(nn.Module):
-    def __init__(self, embed_dim, num_heads, dropout=0.1) :
+    def __init__(self, embed_dim, num_heads, dropout=0.1, res=False):
         super().__init__()
         # Define multi-head attention Layers for both directions
-        self.antibody_to_antigen_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout,bias=True, add_bias_kv=False)
-        self.antigen_to_antibody_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout,bias=True, add_bias_kv=False)
+        self.antibody_to_antigen_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout, bias=True, add_bias_kv=False)
+        self.antigen_to_antibody_attention = nn.MultiheadAttention(embed_dim, num_heads, dropout, bias=True, add_bias_kv=False)
+        
+        # Optional: You can add layer normalization if needed
+        self.antibody_norm = nn.LayerNorm(embed_dim)
+        self.antigen_norm = nn.LayerNorm(embed_dim)
 
-    def forward (self, antibody_embed, antigen_embed, antibody_mask=None, antigen_mask=None) :
+        self.res = res
+
+    def forward(self, antibody_embed, antigen_embed, antibody_mask=None, antigen_mask=None):
         # Antibody to Antigen Attention
         antibody_as_query = antibody_embed.permute(1, 0, 2)
         antigen_as_kv = antigen_embed.permute(1, 0, 2)
@@ -44,8 +47,9 @@ class BidirectionalCrossAttention(nn.Module):
             key=antigen_as_kv,
             value=antigen_as_kv,
             key_padding_mask=antigen_mask
-            )
-        
+        )
+        attn_output_antibody = attn_output_antibody.permute(1, 0, 2)
+
         # Antigen to Antibody Attention
         antigen_as_query = antigen_embed.permute(1, 0, 2)
         antibody_as_kv = antibody_embed.permute(1, 0, 2)
@@ -55,7 +59,18 @@ class BidirectionalCrossAttention(nn.Module):
             value=antibody_as_kv, 
             key_padding_mask=antibody_mask
         )
-        return attn_output_antibody.permute(1, 0, 2), attn_output_antigen.permute(1, 0, 2)
+        attn_output_antigen = attn_output_antigen.permute(1, 0, 2)
+
+        # residual connection(optional)
+        if self.res == True:
+             # Residual connection for antibody to antigen attention
+            attn_output_antibody = attn_output_antibody + antibody_as_query
+            attn_output_antibody = self.antibody_norm(attn_output_antibody)  # Optional normalization
+            # Residual connection for antigen to antibody attention
+            attn_output_antigen = attn_output_antigen + antigen_as_query
+            attn_output_antigen = self.antigen_norm(attn_output_antigen)  # Optional normalization
+
+        return attn_output_antibody, attn_output_antigen
 
 
 class AntiEmbeddings(nn.Module) :
@@ -141,9 +156,9 @@ class Combine_Embedding(nn.Module):
     
 
 class bicrossatt(nn.Module):
-    def __init__(self, antibody_hidden_dim,latent_dim = 64) -> None:
+    def __init__(self, antibody_hidden_dim, latent_dim = 64, res = False) -> None:
         super().__init__()
-        self.bidirectional_crossatt = BidirectionalCrossAttention(embed_dim=antibody_hidden_dim, num_heads=1)
+        self.bidirectional_crossatt = BidirectionalCrossAttention(embed_dim=antibody_hidden_dim, num_heads=1,res=res)
         self.LayerNorm = nn.LayerNorm(antibody_hidden_dim, eps=1e-12)
         self.linear = nn.Sequential(nn.Linear(antibody_hidden_dim,antibody_hidden_dim),nn.ReLU(inplace=True))
         self.change_dim = nn.Sequential(nn.Linear(antibody_hidden_dim,latent_dim),nn.ReLU(inplace=True))
@@ -169,10 +184,10 @@ class bicrossatt(nn.Module):
 
 
 class antibinder(nn.Module):
-    def __init__(self,antibody_hidden_dim,antigen_hidden_dim,latent_dim) -> None:
+    def __init__(self,antibody_hidden_dim,antigen_hidden_dim,latent_dim,res=False) -> None:
         super().__init__()
         self.combined_embedding = Combine_Embedding(antibody_hidden_dim,antigen_hidden_dim)
-        self.bicrossatt = bicrossatt(antibody_hidden_dim,latent_dim)
+        self.bicrossatt = bicrossatt(antibody_hidden_dim,latent_dim,res)
         # self.multi_bidcrossatt = nn.ModuleList([bicrossatt(antibody_hidden_dim,latent_dim) for _ in range(N)])
         self.cls = nn.Sequential(
             nn.Linear(latent_dim*latent_dim*2,latent_dim*latent_dim),

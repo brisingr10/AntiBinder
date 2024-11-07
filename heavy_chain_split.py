@@ -1,61 +1,62 @@
 import os
 import pandas as pd
 from abnumber import Chain
-from joblib import Parallel, delayed 
-from tqdm import tqdm 
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
-
-def prepare_seq(seq_idx, seq, main_sp) :
-    result = {'Index': seq_idx}
+def process_sequence(seq_index, sequence, scheme):
+    output = {'Seq_Index': seq_index}
     try:
-        chain = Chain(seq, scheme=main_sp)
-        if chain.chain_type == 'H':
-            result = {
-                'Index':seq_idx,
-                'FR1':chain.fr1_seq or 'None',
-                'CDR1':chain.cdr1_seq or 'None',
-                'FR2':chain.fr2_seq or 'None',
-                'CDR2':chain.cdr2_seq or 'None',
-                'FR3':chain.fr3_seq or 'None',
-                'CDR3':chain.cdr3_seq or 'None',
-                'FR4':chain.fr4_seq or 'None'
-            }
-            return result
-        
-    except Exception as e:
-        result.update({'FR1': '', 'CDR1': '', 'FR2' : '', 'CDR2': '', 'FR3': '', 'CDR3': '','FR4': ''})
+        ab_chain = Chain(sequence, scheme=scheme)
+        if ab_chain.chain_type == 'H':
+            output.update({
+                'Seq_Index': seq_index,
+                'Framework_1': ab_chain.fr1_seq or 'None',
+                'Complementarity_1': ab_chain.cdr1_seq or 'None',
+                'Framework_2': ab_chain.fr2_seq or 'None',
+                'Complementarity_2': ab_chain.cdr2_seq or 'None',
+                'Framework_3': ab_chain.fr3_seq or 'None',
+                'Complementarity_3': ab_chain.cdr3_seq or 'None',
+                'Framework_4': ab_chain.fr4_seq or 'None'
+            })
+            return output
+    except Exception as error:
+        output.update({
+            'Framework_1': '', 'Complementarity_1': '',
+            'Framework_2': '', 'Complementarity_2': '',
+            'Framework_3': '', 'Complementarity_3': '',
+            'Framework_4': ''
+        })
     
-    return result
+    return output
 
+def process_file(input_filepath, output_filepath, scheme_type):
+    dataframe = pd.read_csv(input_filepath)
+    parallel_processor = Parallel(n_jobs=-1, backend="loky")
+    processed_list = parallel_processor(
+        delayed(process_sequence)(idx, sequence, scheme_type) 
+        for idx, sequence in tqdm(dataframe['vh'].dropna().iteritems(), desc="Processing Antibody Sequences")
+    )
+    processed_dataframe = pd.DataFrame(processed_list).set_index('Seq_Index')
 
-def prepare_file(file_path, output_path, main_sp):
-    # multi-process
-    df = pd.read_csv(file_path)
-    n_jobs = -1
-    parallel_pre = Parallel(n_jobs=n_jobs, backend="loky")
-    processed_data = parallel_pre(delayed(prepare_seq)(idx, seq, main_sp) for idx, seq in tqdm(df['vh'].dropna().iteritems(), desc="Processing Sequences"))
-    processed_df = pd.DataFrame(processed_data).set_index('Index')
-    for col in processed_df.columns:
-        df[col] = processed_df[col]
-    df.to_csv(output_path, index=False)
+    for column in processed_dataframe.columns:
+        dataframe[column] = processed_dataframe[column]
 
+    dataframe.to_csv(output_filepath, index=False)
 
-def final_pdata(input_file, output_file, main_sp):
-    prepare_file(input_file,
-                 output_file,
-                 main_sp
-                 )
-    
+def run_processing(input_path, output_path, scheme):
+    process_file(input_path, output_path, scheme)
+
 if __name__ == "__main__":
-    work_dir = "/AntiBinder/"
-    input_file = ""
-    output_file_prefix = input_file.split('.')[2]
-    output_file = ""
+    working_directory = "/AntiBinder/"
+    input_file_path = ""
+    output_file_name = input_file_path.split('.')[2] if '.' in input_file_path else "output"
+    output_file_path = ""
 
-    os.chdir(work_dir)
+    os.chdir(working_directory)
 
-    main_sp = 'chothia'
-    second_sp = 'Heavy_fv_oas_train_filtered'
+    primary_scheme = 'chothia'
+    backup_scheme = 'Heavy_fv_oas_train_filtered'
 
-    final_pdata(input_file, output_file, main_sp)
-    print("Finish!")
+    run_processing(input_file_path, output_file_path, primary_scheme)
+    print("Processing Completed!")

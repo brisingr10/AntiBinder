@@ -43,3 +43,5 @@ ckpts/
 # Ignore other environment variable files
 .env.local
 .env.development
+
+.venv

@@ -1,7 +1,10 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ.pop('MPLBACKEND', None)    # remove it if set
 from antigen_antibody_emb import * 
 from antibinder_model import *
+import matplotlib
+matplotlib.use('agg')    # choose 'agg' (a headless, file‑output backend)
 import torch
 import torch.nn as nn 
 import numpy as np 

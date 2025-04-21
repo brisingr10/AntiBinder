@@ -132,7 +132,7 @@ if __name__ == "__main__":
     # here choose dataset
     if args.data == 'train':
         # Construct relative path for dataset
-        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv')
+        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data_split.csv')
     # elif args.data == 'train_2':
     #     data_path = '' # Define path similarly if needed
     else:

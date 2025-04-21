@@ -44,4 +44,4 @@ ckpts/
 .env.local
 .env.development
 
-.venv
+.vscode

@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # choose test dataset
     if args.data == 'test':
         # Construct relative data path
-        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv') # Replace with your actual test data file
+        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data_split.csv') # Replace with your actual test data file
   
 
     print (data_path)

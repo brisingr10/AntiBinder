@@ -51,21 +51,17 @@ def run_processing(input_path, output_path, scheme):
     process_file(input_path, output_path, scheme)
 
 if __name__ == "__main__":
-    # Construct relative input path
+    # Construct relative input and output paths
     input_file = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv') 
-    
-    # Read the CSV file
-    df = pd.read_csv(input_file)
-
-    # Apply the function to the 'vh' column and create new columns
-    df[['H-FR1', 'H-CDR1', 'H-FR2', 'H-CDR2', 'H-FR3', 'H-CDR3', 'H-FR4']] = df['vh'].apply(lambda x: pd.Series(split_heavy_chain(x)))
-
-    # Construct relative output path
     output_file = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data_split.csv') 
     
-    # Save the modified DataFrame to a new CSV file
-    df.to_csv(output_file, index=False)
+    # Define the numbering scheme to use (e.g., 'chothia', 'imgt', 'kabat')
+    # Using 'chothia' as an example from your original code
+    scheme = 'chothia' 
 
-    print(f"Processed data saved to {output_file}")
+    print(f"Processing {input_file} using '{scheme}' scheme...")
+    
+    # Call the function that handles reading, processing (in parallel), and writing
+    run_processing(input_file, output_file, scheme)
 
-
+    print(f"Processing Completed! Output saved to {output_file}")

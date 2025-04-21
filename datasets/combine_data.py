@@ -21,8 +21,8 @@ else:
     if not all_files: # Now check if the list is empty
         print(f"No CSV files found recursively in {data_dir}")
     else:
-        # Define the columns to keep
-        required_columns = ['vh', 'ANT_Binding', 'Antigen Sequence']
+        # Define the columns to keep - UPDATED LIST
+        required_columns = ['vh', 'Antigen Sequence', 'H-FR1', 'H-CDR1', 'H-FR2', 'H-CDR2', 'H-FR3', 'H-CDR3', 'H-FR4', 'ANT_Binding']
         
         df_list = []
         for f in all_files:
@@ -34,7 +34,6 @@ else:
                 print(f"Warning: Could not read required columns from {f}. Error: {e}. Skipping file.")
             except Exception as e:
                 print(f"Warning: Error reading file {f}: {e}. Skipping file.")
-
         if not df_list:
                 print(f"No valid data found in CSV files in {data_dir}")
         else:

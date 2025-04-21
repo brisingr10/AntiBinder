@@ -18,6 +18,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+# Define Project Root
+PROJECT_ROOT = os.path.dirname(__file__) 
+
 class Trainer():
     def __init__(self,model,valid_dataloader,args,logger) -> None:
         self.model = model
@@ -82,6 +85,21 @@ class Trainer():
         val_auc, val_prescision, val_acc, val_recall, val_f1, TN, FP, FN, TP =self.valid()
         self.logger.log([val_auc, val_prescision, val_acc, val_recall, val_f1, TN, FP, FN, TP])
 
+    def save_model(self):
+            # Construct relative path for checkpoints
+            ckpt_dir = os.path.join(PROJECT_ROOT, "ckpts")
+            os.makedirs(ckpt_dir, exist_ok=True) # Ensure directory exists
+            
+            # Save model with detailed parameters in the filename
+            detailed_save_path = os.path.join(ckpt_dir, f"{self.args.model_name}_{self.args.data}_{self.args.batch_size}_{self.args.epochs}_{self.args.latent_dim}_{self.args.lr}.pth")
+            torch.save(self.model.state_dict(), detailed_save_path)
+            print(f"Model saved to {detailed_save_path}")
+
+            # Also save/overwrite a generic 'best' model file
+            best_save_path = os.path.join(ckpt_dir, f"{self.args.model_name}_{self.args.latent_dim}_best.pth")
+            torch.save(self.model.state_dict(), best_save_path)
+            print(f"Best model updated at {best_save_path}")
+
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -108,23 +126,31 @@ if __name__ == "__main__":
     model = antibinder(antibody_hidden_dim=1024,antigen_hidden_dim=1024,latent_dim=args.latent_dim,res=False).cuda()
     print(model)
    
-    
     # load model
-    weight = torch.load('')
+    # Construct relative path for checkpoints (assuming a 'ckpts' directory)
+    ckpt_dir = os.path.join(PROJECT_ROOT, "ckpts") 
+    # Load the generic 'best' model saved by the trainer
+    model_path = os.path.join(ckpt_dir, f"{args.model_name}_{args.latent_dim}_best.pth") # This now matches the trainer's best model save path
+    weight = torch.load(model_path) 
     model.load_state_dict(weight)
     print("load success")
 
 
     # choose test dataset
     if args.data == 'test':
-        data_path = ''
+        # Construct relative data path
+        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv') # Replace with your actual test data file
   
 
     print (data_path)
     val_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=False, test=True, rate1=0)
     val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=args.batch_size)
-  
-    logger = CSVLogger_my(['val_auc', 'val_prescision', 'val_acc', 'val_recall', 'val_f1', 'TN', 'FP', 'FN', 'TP'],f"/AntiBinder/logs/{args.model_name}_{args.latent_dim}_{args.data}.csv")
+
+    # Construct relative path for logs
+    log_dir = os.path.join(PROJECT_ROOT, "logs")
+    os.makedirs(log_dir, exist_ok=True) # Ensure directory exists
+    log_path = os.path.join(log_dir, f"{args.model_name}_{args.latent_dim}_{args.data}.csv")
+    logger = CSVLogger_my(['val_auc', 'val_prescision', 'val_acc', 'val_recall', 'val_f1', 'TN', 'FP', 'FN', 'TP'], log_path)
     
     scheduler = None
     trainer = Trainer(

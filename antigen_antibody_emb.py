@@ -7,13 +7,23 @@ import torch.nn as nn
 import torch.nn. functional as F
 import pandas as pd
 import sys
-sys.path.append("/AntiBinder")
+# sys.path.append("/AntiBinder")
 from cfg_ab import AminoAcid_Vocab
 from cfg_ab import configuration
 import pdb
 from math import ceil
 from igfold import IgFoldRunner
 
+# Get the directory where antigen_antibody_emb.py is located (project root)
+PROJECT_ROOT = os.path.dirname(__file__) 
+ANTIGEN_ESM_CACHE_DIR = os.path.join(PROJECT_ROOT, 'antigen_esm', 'train')
+FOLD_EMB_DIR = os.path.join(PROJECT_ROOT, 'datasets', 'fold_emb')
+
+# Create cache directories if they don't exist
+os.makedirs(ANTIGEN_ESM_CACHE_DIR, exist_ok=True)
+# Note: LMDB directory needs to exist *before* opening. 
+# Ensure 'fold_emb_for_train' exists within FOLD_EMB_DIR if using LMDB caching.
+os.makedirs(os.path.join(FOLD_EMB_DIR, 'fold_emb_for_train'), exist_ok=True) # Uncomment if needed
 
 class antibody_antigen_dataset(nn.Module):
     def __init__(self,
@@ -86,7 +96,10 @@ class antibody_antigen_dataset(nn.Module):
     def __getitem__(self, index):
         data = self.data.iloc[index]
         label = torch.tensor(data['ANT_Binding'])
-        if not os.path.exists('/AntiBinder/antigen_esm/train/'+str(self.data.iloc[index]['Antigen'])+'.pt'):
+        antigen_cache_filename = str(self.data.iloc[index]['Antigen']) + '.pt'
+        antigen_cache_path = os.path.join(ANTIGEN_ESM_CACHE_DIR, antigen_cache_filename) # Use defined cache dir
+
+        if not os.path.exists(antigen_cache_path): # Check using the constructed path
             antigen = self.func_padding_for_esm(self.data['Antigen Sequence'].iloc[index], self.antigen_config.max_position_embeddings)
             antigen = [('antigen', antigen)]
             batch_labels, batch_strs, antigen = self.batch_converter(antigen)
@@ -94,16 +107,16 @@ class antibody_antigen_dataset(nn.Module):
                 self.antigen_model = self.antigen_model.eval()
                 antigen = self.antigen_model(antigen.squeeze(1), repr_layers=[33], return_contacts=True)
                 antigen = antigen['representations'][33].squeeze(0)
-            torch.save(antigen,'/AntiBinder/antigen_esm/train/'+str(self.data.iloc[index]['Antigen'])+'.pt')
+            torch.save(antigen, antigen_cache_path) # Save using the constructed path
         
-        antigen_structure = torch.load("/AntiBinder/antigen_esm/train/"+str(self.data.iloc[index]['Antigen'])+'.pt')
-        # print("antigen_structure："，antigen_structure)
-        # print("antigen_structure shape: ", antigen_structure.shape)
-        
+        antigen_structure = torch.load(antigen_cache_path) # Load using the constructed path
+        # ...existing code...
         emb_seq = data['H-FR1'] + data['H-CDR1'] + data['H-FR2'] + data['H-CDR2'] + data['H-FR3'] + data['H-CDR3']+data['H-FR4']
         #if not emb_seq in self.structure_embedding.keys():
-        self.env = lmdb.open('/AntiBinder/datasets/fold_emb/fold_emb_for_train',map_size=1024*1024*1024*50,lock=False)
+        fold_emb_db_path = os.path.join(FOLD_EMB_DIR, 'fold_emb_for_train') # Use defined fold emb dir
+        self.env = lmdb.open(fold_emb_db_path, map_size=1024*1024*1024*50, lock=False) # Use constructed path
         self.structure_embedding = self.env.begin(write=True)
+        # ...existing code...
         if self.structure_embedding.get(emb_seq.encode()) == None:
             sequences = {
                 "H": emb_seq
@@ -173,15 +186,13 @@ class antibody_antigen_dataset(nn.Module):
 
 
 if __name__ == "__main__":
-    antigen_config = configuration()
-    setattr(antigen_config, 'max_position_embeddings',1024)
-    antibody_config = configuration()
-    setattr(antibody_config, 'max_position_embeddings', 150)
-
+    # ...existing code...
     os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 
-    data_path = '/AntiBinder/datasets/xx'
+    # Construct the data path relative to the project root
+    data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv') 
     dataset = antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config, data_path=data_path, train=True, test=False, rate1=0.0001)
+    # ...existing code...
     # pdb. set_trace()
     x1 = dataset[0]
  

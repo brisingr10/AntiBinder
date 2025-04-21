@@ -4,6 +4,9 @@ from abnumber import Chain
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
+# Define Project Root
+PROJECT_ROOT = os.path.dirname(__file__) 
+
 def process_sequence(seq_index, sequence, scheme):
     output = {'Seq_Index': seq_index}
     try:
@@ -48,15 +51,21 @@ def run_processing(input_path, output_path, scheme):
     process_file(input_path, output_path, scheme)
 
 if __name__ == "__main__":
-    working_directory = "/AntiBinder/"
-    input_file_path = ""
-    output_file_name = input_file_path.split('.')[2] if '.' in input_file_path else "output"
-    output_file_path = ""
+    # Construct relative input path
+    input_file = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv') 
+    
+    # Read the CSV file
+    df = pd.read_csv(input_file)
 
-    os.chdir(working_directory)
+    # Apply the function to the 'vh' column and create new columns
+    df[['H-FR1', 'H-CDR1', 'H-FR2', 'H-CDR2', 'H-FR3', 'H-CDR3', 'H-FR4']] = df['vh'].apply(lambda x: pd.Series(split_heavy_chain(x)))
 
-    primary_scheme = 'chothia'
-    backup_scheme = 'Heavy_fv_oas_train_filtered'
+    # Construct relative output path
+    output_file = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data_split.csv') 
+    
+    # Save the modified DataFrame to a new CSV file
+    df.to_csv(output_file, index=False)
 
-    run_processing(input_file_path, output_file_path, primary_scheme)
-    print("Processing Completed!")
+    print(f"Processed data saved to {output_file}")
+
+

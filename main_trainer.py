@@ -16,6 +16,7 @@ sys.path.append ('../')
 import warnings 
 warnings.filterwarnings("ignore")
 
+PROJECT_ROOT = os.path.dirname(__file__) 
 
 class Trainer():
     def __init__(self,model,train_dataloader,args,logger,load=False) -> None:
@@ -88,8 +89,12 @@ class Trainer():
 
 
     def save_model(self):
-        torch.save(self.model.state_dict(),f"/AntiBinder/ckpts/{self.args.model_name}_{self.args.data}_{self.args.batch_size}_{self.args.epochs}_{self.args.latent_dim}_{self.args.lr}.pth")
-
+            # Construct relative path for checkpoints
+            ckpt_dir = os.path.join(PROJECT_ROOT, "ckpts")
+            os.makedirs(ckpt_dir, exist_ok=True) # Ensure directory exists
+            save_path = os.path.join(ckpt_dir, f"{self.args.model_name}_{self.args.data}_{self.args.batch_size}_{self.args.epochs}_{self.args.latent_dim}_{self.args.lr}.pth")
+            torch.save(self.model.state_dict(), save_path)
+            print(f"Model saved to {save_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -126,20 +131,31 @@ if __name__ == "__main__":
 
     # here choose dataset
     if args.data == 'train':
-        data_path = '/AntiBinder/datasets/**'
+        # Construct relative path for dataset
+        data_path = os.path.join(PROJECT_ROOT, 'datasets', 'combined_training_data.csv')
     # elif args.data == 'train_2':
-    #     data_path = ''
+    #     data_path = '' # Define path similarly if needed
+    else:
+        # Handle cases where args.data is not 'train' if necessary
+        raise ValueError(f"Unsupported data argument: {args.data}")
 
 
     # print (data_path)
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Combined dataset not found at: {data_path}. Please run combine_data.py first.")
+        
     train_dataset = antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data_path, train=True, test=False, rate1=1)
-    # vaL_dataset =antibody_antigen_dataset(antigen_config=antigen_config,antibody_config=antibody_config,data_path=data path, train=False, test=True, rate1=0.7)
+    # ... existing validation dataset setup (commented out) ...
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=args.batch_size)
-    # vaL_dataloader = DataLoader(val_dataset, shuffLe=False, batch_size=args.batch_size)
+    # ... existing validation dataloader setup (commented out) ...
   
-
-    logger = CSVLogger_my(['epoch', 'train_loss', 'train_acc', 'train_precision', 'train_f1', 'train_recall'],f"/AntiBinder/logs/{args.model_name}_{args.data}_{args.batch_size}_{args.epochs}_{args.latent_dim}_{args.lr}.csv")
+    # Construct relative path for logs
+    log_dir = os.path.join(PROJECT_ROOT, "logs")
+    os.makedirs(log_dir, exist_ok=True) # Ensure directory exists
+    log_path = os.path.join(log_dir, f"{args.model_name}_{args.data}_{args.batch_size}_{args.epochs}_{args.latent_dim}_{args.lr}.csv")
+    logger = CSVLogger_my(['epoch', 'train_loss', 'train_acc', 'train_precision', 'train_f1', 'train_recall'], log_path)
+    
     scheduler = None
 
     # load model if needs

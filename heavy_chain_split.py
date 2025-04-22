@@ -38,7 +38,8 @@ def process_file(input_filepath, output_filepath, scheme_type):
     parallel_processor = Parallel(n_jobs=-1, backend="loky")
     processed_list = parallel_processor(
         delayed(process_sequence)(idx, sequence, scheme_type) 
-        for idx, sequence in tqdm(dataframe['vh'].dropna().iteritems(), desc="Processing Antibody Sequences")
+        # Replace iteritems() with items()
+        for idx, sequence in tqdm(dataframe['vh'].dropna().items(), desc="Processing Antibody Sequences") 
     )
     processed_dataframe = pd.DataFrame(processed_list).set_index('Seq_Index')
 

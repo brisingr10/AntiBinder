@@ -1,6 +1,5 @@
 # Primary parsing & bioinformatics
 beautifulsoup4==4.12.3
-biopython==1.83
 biotite==0.40.0
 
 # Structural‑bio deep‑learning models
@@ -15,11 +14,8 @@ ml-collections==0.1.1
 tqdm==4.66.2
 
 # Machine‑learning & data ecosystem
-numpy>=1.23,<2.1
-pandas>=2.0,<3.0
 scikit-learn==1.4.2
 seaborn==0.13.2
-requests>=2.25,<3.0
 
 # Minimal back‑compat helpers
 six==1.16.0

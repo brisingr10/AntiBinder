@@ -21,8 +21,5 @@ scikit-learn==1.4.2
 seaborn==0.13.2
 requests>=2.25,<3.0
 
-# PyTorch (CUDA 12.4 build)
-torch==2.6.0+cu124
-
 # Minimal back‑compat helpers
 six==1.16.0

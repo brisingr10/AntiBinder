@@ -1,6 +1,14 @@
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-os.environ.pop('MPLBACKEND', None)    # remove it if set
+import os, sys
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--device', type=str, default='0', help="which GPU to use")
+# … add the rest of your args …
+args = parser.parse_args()
+
+os.environ["CUDA_VISIBLE_DEVICES"] = args.device
+sys.path.append('../')   # if you still need it
+
 from antigen_antibody_emb import * 
 from antibinder_model import *
 import matplotlib
@@ -18,6 +26,8 @@ from sklearn.metrics import accuracy_score, precision_score, f1_score, classific
 sys.path.append ('../') 
 import warnings 
 warnings.filterwarnings("ignore")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
 
 PROJECT_ROOT = os.path.dirname(__file__) 
 
@@ -63,6 +73,10 @@ class Trainer():
             Y_hat = []
             Y = []
             for antibody_set, antigen_set, label in tqdm(self.train_dataloader):
+                antibody_set = [t.to(device) for t in antibody_set]
+                antigen_set  = [t.to(device) for t in antigen_set]
+                label        = label.to(device).float()
+
                 probs = self.model(antibody_set, antigen_set)
 
                 yhat = (probs>0.5).long()

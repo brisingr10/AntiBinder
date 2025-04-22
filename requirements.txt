@@ -1,19 +1,28 @@
+# Primary parsing & bioinformatics
 beautifulsoup4==4.12.3
 biopython==1.83
 biotite==0.40.0
-bs4==0.0.2
+
+# Structural‑bio deep‑learning models
 fair-esm==2.0.0
-idna==3.4
 igfold==0.4.0
-joblib
+
+# Utilities & plotting
+joblib==1.4.2
 lmdb==1.4.1
 logomaker==0.8
 ml-collections==0.1.1
-numpy
-pandas
-requests
+tqdm==4.66.2
+
+# Machine‑learning & data ecosystem
+numpy>=1.23,<2.1
+pandas>=2.0,<3.0
 scikit-learn==1.4.2
 seaborn==0.13.2
+requests>=2.25,<3.0
+
+# PyTorch (CUDA 12.4 build)
+torch==2.6.0+cu124
+
+# Minimal back‑compat helpers
 six==1.16.0
-torch
-tqdm==4.66.2

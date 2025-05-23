@@ -14,6 +14,7 @@ ml-collections==0.1.1
 tqdm==4.66.2
 
 # Machine‑learning & data ecosystem
+torch==2.5.1
 scikit-learn==1.4.2
 seaborn==0.13.2
 

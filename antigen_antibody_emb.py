@@ -96,7 +96,7 @@ class antibody_antigen_dataset(nn.Module):
     def __getitem__(self, index):
         data = self.data.iloc[index]
         label = torch.tensor(data['ANT_Binding'])
-        antigen_cache_filename = str(self.data.iloc[index]['Antigen']) + '.pt'
+        antigen_cache_filename = str(self.data.iloc[index]['Antigen Sequence']) + '.pt'
         antigen_cache_path = os.path.join(ANTIGEN_ESM_CACHE_DIR, antigen_cache_filename) # Use defined cache dir
 
         if not os.path.exists(antigen_cache_path): # Check using the constructed path
